@@ -1,0 +1,62 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<ui:composition xmlns="http://www.w3.org/1999/xhtml" 
+                xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+                template="./main-template.xhtml"
+                xmlns:h="http://xmlns.jcp.org/jsf/html"
+                xmlns:p="http://primefaces.org/ui" 
+                xmlns:f="http://xmlns.jcp.org/jsf/core"
+                xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+
+    <ui:define name="JavaScripts">
+        <h:outputScript library="js" name="js-scripts.js"/>
+        
+        <script type="text/javascript" language="javascript">
+            window.onload = function () {
+                PF('login-dialog-w').show();
+            };
+        </script>
+    </ui:define>
+
+    <ui:define name="content">
+        <p:dialog id="login-dialog" 
+                  header="Login" 
+                  widgetVar="login-dialog-w" 
+                  modal="true" 
+                  responsive="true"
+                  closable="false">
+            <h:form id="login-form">
+                <p:panelGrid columns="2" >
+                    <h:outputLabel value="User name:"/>
+                    <p:inputText id="username" 
+                                 value="#{logService.username}"
+                                 size="15"
+                                 validatorMessage="User name: minimum length is 5 characters">
+                        <f:validateLength minimum="5" />
+                    </p:inputText>
+
+                    <h:outputLabel value="Password:"/>
+                    <p:password id="password" 
+                                value="#{logService.pwd}"
+                                size="15"
+                                validatorMessage="Password: minimum length is 5 characters">
+                        <f:validateLength minimum="5" />
+                    </p:password>
+                </p:panelGrid>
+                <p:commandButton value="Login" class="log-button"
+                                 action="#{logService.userAuthentication()}"
+                                 onclick="if (!checkInputs(this.form))
+                                             return false;"
+                                 ajax="false"
+                                 icon="fa fa-user"
+                                 />
+                <p:growl id="growl-login" 
+                         widgetVar="growl-login-dt"
+                         sticky="true"
+                         showSummary="true" 
+                         severity="error"
+                         autoUpdate="true"/>
+            </h:form>
+        </p:dialog>
+    </ui:define>
+</ui:composition>

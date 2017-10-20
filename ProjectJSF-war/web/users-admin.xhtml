@@ -1,0 +1,223 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE composition PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<ui:composition xmlns="http://www.w3.org/1999/xhtml" 
+                xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+                template="./main-template.xhtml"
+                xmlns:h="http://xmlns.jcp.org/jsf/html"
+                xmlns:p="http://primefaces.org/ui" 
+                xmlns:f="http://xmlns.jcp.org/jsf/core">
+
+    <ui:define name="JavaScripts">
+        <h:outputScript library="js" name="adm-scr.js"/>
+    </ui:define>
+
+    <ui:define name="content">
+        <h:form id="userstable-form" >
+            <p:remoteCommand name="refreshAllData" 
+                             update="userstable-form:userstable departments-table-form:departments-table" 
+                             actionListener="#{adminServices.readAllData}" />    
+            <p:dataTable id="userstable" 
+                         var="user" 
+                         value="#{adminServices.users}" 
+                         widgetVar="user-dt" 
+                         rows="10"
+                         paginator="true"
+                         paginatorTemplate="{CurrentPageReport} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}"
+                         rowsPerPageTemplate="5,10,15" 
+                         paginatorPosition="bottom"
+                         filteredValue="#{adminServices.filteredUsers}" 
+                         styleClass="users-datatable" >
+
+                <f:facet name="header">
+                    List of Users
+                </f:facet>
+
+                <p:column headerText="User Name"
+                          filterBy="#{user.username}" 
+                          filterMatchMode="contains"
+                          >
+                    <h:outputText value="#{user.username}" />
+                </p:column>
+
+                <p:column headerText="Full Name" 
+                          filterBy="#{user.fullname}"  
+                          filterMatchMode="contains"
+                          >
+                    <h:outputText value="#{user.fullname}" />
+                </p:column>
+
+                <p:column headerText="User Type"
+                          filterBy="#{user.usertype}"
+                          filterMatchMode="exact"
+                          priority="2"
+                          style="width: 150px;">
+                    <f:facet name="filter">
+                        <p:selectOneMenu onchange="PF('user-dt').filter()" >
+                            <f:selectItem itemLabel="All user type" itemValue="#{null}" noSelectionOption="true" />
+                            <f:selectItem itemLabel="administrator" itemValue="A" />
+                            <f:selectItem itemLabel="user" itemValue="U" />
+                        </p:selectOneMenu>
+                    </f:facet>
+                    <h:outputText value="#{(user.usertype eq 'A' ? 'administrator' : 'user')}" />
+                </p:column>
+
+                <p:column headerText="Department"
+                          priority="2">
+                    <h:outputText value="#{user.department.name}" />
+                </p:column>
+
+                <p:column style="width: 70px; text-align: center;">
+                    <p:commandButton id="edit-button" 
+                                     action="#{adminServices.editUserMode(user)}" 
+                                     update="user-edit-dialog" 
+                                     oncomplete="PF('user-dialog').show()"
+                                     style=" height: 18px; width: 36px;"
+                                     icon="ui-icon-search"
+                                     title="Edit user"/>
+                </p:column>
+
+                <f:facet name="footer">
+                    <p:commandButton value="New user" 
+                                     action="#{adminServices.addUserMode()}" 
+                                     update="user-edit-dialog" 
+                                     oncomplete="PF('user-dialog').show()"
+                                     style=" height: 30px;"
+                                     />
+                </f:facet>
+            </p:dataTable>
+        </h:form>
+
+        <p:dialog id="user-edit-dialog" 
+                  header="#{adminServices.isEditUserMode()?'Edit user':'Add new user'}" 
+                  widgetVar="user-dialog" 
+                  modal="true" 
+                  responsive="true" 
+                  onHide="refreshAllDataJS()" >
+            <p:ajax event="close" 
+                    update="userstable-form:userstable departments-table-form:departments-table" />
+            <h:form id="user-edit-form">
+                <p:panelGrid columns="2">
+
+                    <h:outputLabel value="User name:"/>
+                    <h:inputText value="#{adminServices.username}" 
+                                 disabled="#{adminServices.isEditUserMode()}"
+                                 validatorMessage="User name: minimum length is 5 characters">
+                        <f:validateLength minimum="5" />
+                    </h:inputText>
+
+                    <h:outputLabel value="Full name:"/>
+                    <h:inputText value="#{adminServices.fullname}"
+                                 validatorMessage="Full name value is required.">
+                        <f:validateRequired />
+                    </h:inputText>
+
+                    <h:outputLabel value="Password:"/>
+                    <p:password value="#{adminServices.password}"
+                                validator="#{adminServices.pswValidator}" />
+
+                    <h:outputLabel value="User type:"/>
+                    <h:panelGrid columns="2" >
+                        <h:selectOneRadio value="#{adminServices.usertype}" 
+                                          layout="pageDirection" >
+                            <f:selectItem itemLabel="admin" itemValue="A" />
+                            <f:selectItem itemLabel="user" itemValue="U" />
+                            <f:validateRequired />
+                        </h:selectOneRadio>
+
+                    </h:panelGrid>
+                    <h:outputLabel value="Department:"/>
+                    <h:selectOneListbox value="#{adminServices.department}" 
+                                        converter="omnifaces.SelectItemsConverter" >
+                        <f:selectItems value="#{adminServices.departments}" 
+                                       var="dep"  
+                                       itemLabel="#{dep.name}"
+                                       itemValue="#{dep}"/>
+                        <f:validateRequired />
+                    </h:selectOneListbox>
+                </p:panelGrid>
+
+                <p:commandButton value="Save"
+                                 actionListener="#{adminServices.saveUser}"
+                                 update="user-edit-form"
+                                 oncomplete="handleSaveRequest(xhr, status, args)"
+                                 style="margin-top: 10px;"
+                                 />
+                <p:growl id="growl-user" 
+                         widgetVar="growl-user-dt"
+                         sticky="true"
+                         showSummary="true" 
+                         severity="error"
+                         autoUpdate="true"/>
+            </h:form>
+        </p:dialog>
+
+        <h:form id="departments-table-form" >
+            <p:dataTable id="departments-table" 
+                         var="departs" 
+                         value="#{adminServices.departments}" 
+                         widgetVar="departments-dt" 
+                         rows="5"
+                         paginator="true"
+                         paginatorTemplate="{CurrentPageReport} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}"
+                         rowsPerPageTemplate="5,10,15" 
+                         paginatorPosition="bottom"
+                         styleClass="dep-datatable" >
+
+                <f:facet name="header">
+                    List of Departments
+                </f:facet>
+
+                <p:column headerText="Name of department" >
+                    <h:outputText value="#{departs.name}" />
+                </p:column>
+
+                <f:facet name="footer">
+                    <p:commandButton value="New Department"
+                                     action="#{adminServices.initAddDepartment()}"
+                                     update="department-dialog" 
+                                     oncomplete="PF('dep-dialog').show()"
+                                     style="height: 30px;"
+                                     />
+                </f:facet>
+
+            </p:dataTable>
+        </h:form>
+        
+        <br/>
+        
+        <p:dialog id="department-dialog" 
+                  header="Add new Department" 
+                  widgetVar="dep-dialog" 
+                  modal="true" 
+                  responsive="true"
+                  onHide="refreshAllDataJS()">
+            <p:ajax event="close" 
+                    update="departments-table-form:departments-table userstable-form:userstable" />
+            <h:form id="departments-form">
+                <p:panelGrid columns="2">
+                    <h:outputLabel value="Department name:"/>
+                    <h:inputText value="#{adminServices.departmentName}" 
+                                 validatorMessage="Department name value is required."
+                                 >
+                        <f:validateRequired />
+                    </h:inputText>
+                </p:panelGrid>
+
+                <p:commandButton value="Save"
+                                 actionListener="#{adminServices.saveDepartment}"
+                                 update="departments-form growl-dep"
+                                 oncomplete="handleSaveDepartmentRequest(xhr, status, args)" 
+                                 style="margin-top: 10px;"
+                                 />
+                <p:growl id="growl-dep" 
+                         widgetVar="growl-dep-dialog"
+                         sticky="true"
+                         showSummary="true" 
+                         redisplay="false" 
+                         severity="error"
+                         autoUpdate="true"/>
+            </h:form>
+        </p:dialog>
+
+    </ui:define>
+</ui:composition>

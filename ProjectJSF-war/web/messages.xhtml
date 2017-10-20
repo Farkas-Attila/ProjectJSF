@@ -1,0 +1,197 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE composition PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<ui:composition xmlns="http://www.w3.org/1999/xhtml" 
+                xmlns:ui="http://xmlns.jcp.org/jsf/facelets"
+                template="./main-template.xhtml"
+                xmlns:h="http://xmlns.jcp.org/jsf/html"
+                xmlns:p="http://primefaces.org/ui" 
+                xmlns:f="http://xmlns.jcp.org/jsf/core"
+                xmlns:c="http://xmlns.jcp.org/jsp/jstl/core">
+
+    <ui:define name="JavaScripts">
+        <h:outputScript library="js" name="js-scripts.js"/>
+    </ui:define>
+
+    <ui:define name="content">
+        <h:form id="msg-in-form" >
+            <p:dataTable id="msg-in" 
+                         var="msg" 
+                         value="#{msgServices.inMessages}" 
+                         widgetVar="msg-dt" 
+                         rows="10"
+                         paginator="true"
+                         paginatorTemplate="{CurrentPageReport} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}"
+                         rowsPerPageTemplate="5,10,15" 
+                         paginatorPosition="bottom"
+                         rowStyleClass="#{msg.readflag ? '' : 'new-msg'}"
+                         styleClass="msg-datatable" >
+
+                <f:facet name="header">
+                    Incomming Messages
+                </f:facet>
+
+                <p:column headerText="From"
+                          style="width: 175px;">
+                    <h:outputText value="#{msg.fromuser.fullname}" />
+                </p:column>
+
+                <p:column headerText="Date"
+                          style="width: 150px;">
+                    <h:outputText value="#{msg.msgdate}">
+                        <f:convertDateTime type="both" timeStyle="short"/>
+                    </h:outputText>
+                </p:column>
+
+                <p:column headerText="Message Text">
+                    <h:outputText value="#{msg.msgtext}" />
+                </p:column>
+
+                <p:column style="width: 70px; text-align: center;">
+                    <p:commandButton id="read-button" 
+                                     action="#{msgServices.viewMessage(msg)}" 
+                                     update="msg-dialog" 
+                                     oncomplete="PF('msg-dialog').show()"
+                                     style=" height: 18px; width: 36px;"
+                                     icon="ui-icon-search"
+                                     title="View Message"/>
+                </p:column>
+            </p:dataTable>
+        </h:form>
+
+        <p:dialog id="msg-dialog" 
+                  header="#{msgServices.isViewMode()?'View Message':'New Message'}" 
+                  widgetVar="msg-dialog" 
+                  modal="true" 
+                  responsive="true"
+                  >
+            <p:ajax event="close" 
+                    update="msg-in-form:msg-in msg-out-form:msg-out" />
+            <h:form id="msg-detail-form">
+
+                <c:choose>
+                    <c:when test="#{msgServices.viewMode}" >
+                        <p:panelGrid columns="2">
+                            <h:outputLabel value="From:"/>
+                            <h:outputText value="#{msgServices.message.fromuser.fullname}"/>
+
+                            <h:outputLabel value="To:"/>
+                            <h:outputText value="#{msgServices.message.touser.fullname}"/>
+
+                            <h:outputLabel value="Date:"/>
+                            <h:outputText value="#{msgServices.message.msgdate}">
+                                <f:convertDateTime type="both" timeStyle="short"/>
+                            </h:outputText>
+
+                            <h:outputLabel value="Text:"/>
+                            <h:inputTextarea value="#{msgServices.message.msgtext}" 
+                                             readonly="readonly"
+                                             rows="5"
+                                             style="width: 300px;"/>
+                        </p:panelGrid>
+                    </c:when>
+                    <c:otherwise>
+                        <p:panelGrid columns="2">
+                            <h:outputLabel value="From:"/>
+                            <h:inputText value="#{msgServices.message.fromuser.fullname}"
+                                         readonly="readonly">
+                                <f:validateRequired />
+                            </h:inputText>
+
+                            <h:outputLabel value="To:"/>
+                            <p:selectOneMenu id="selUser" 
+                                             value="#{msgServices.message.touser}" 
+                                             converter="omnifaces.SelectItemsConverter" 
+                                             panelStyle="width:180px"
+                                             effect="fade" 
+                                             var="user" 
+                                             style="width:300px" 
+                                             filter="true" 
+                                             filterMatchMode="startsWith">
+                                <f:selectItems value="#{msgServices.recipients}" 
+                                               var="user" 
+                                               itemLabel="#{user.fullname}" 
+                                               itemValue="#{user}" />
+                                <p:column>
+                                    <h:outputText value="#{user.fullname} [#{user.department.name}]" />
+                                </p:column>
+                                <f:validateRequired />
+                            </p:selectOneMenu>
+
+                            <h:outputLabel value="Text:"/>
+                            <h:inputTextarea value="#{msgServices.message.msgtext}"
+                                             rows="5"
+                                             style="width: 300px;">
+                                <f:validateRequired />
+                            </h:inputTextarea>
+                        </p:panelGrid>
+                        <p:commandButton value="Send"
+                                         actionListener="#{msgServices.saveMessage}"
+                                         update="msg-detail-form"
+                                         oncomplete="handleSaveMessage(xhr, status, args)"
+                                         style="margin-top: 10px;"
+                                         />
+                    </c:otherwise>
+                </c:choose>
+                <p:growl id="growl-msg" 
+                         widgetVar="growl-msg-dt"
+                         sticky="true"
+                         showSummary="true" 
+                         severity="error"
+                         autoUpdate="true"/>
+            </h:form>
+        </p:dialog>
+
+        <h:form id="msg-out-form" >
+            <p:dataTable id="msg-out" 
+                         var="msg" 
+                         value="#{msgServices.outMessages}" 
+                         widgetVar="msg-out-dt" 
+                         rows="10"
+                         paginator="true"
+                         paginatorTemplate="{CurrentPageReport} {FirstPageLink} {PreviousPageLink} {PageLinks} {NextPageLink} {LastPageLink} {RowsPerPageDropdown}"
+                         rowsPerPageTemplate="5,10,15" 
+                         paginatorPosition="bottom"
+                         styleClass="msg-datatable" >
+
+                <f:facet name="header">
+                    Outcomming Messages
+                </f:facet>
+
+                <p:column headerText="To"
+                          style="width: 175px;">
+                    <h:outputText value="#{msg.touser.fullname}" />
+                </p:column>
+
+                <p:column headerText="Date"
+                          style="width: 150px;">
+                    <h:outputText value="#{msg.msgdate}" >
+                        <f:convertDateTime type="both" timeStyle="short"/>
+                    </h:outputText>
+                </p:column>
+
+                <p:column headerText="Message Text">
+                    <h:outputText value="#{msg.msgtext}" />
+                </p:column>
+
+                <p:column style="width: 70px; text-align: center;">
+                    <p:commandButton id="read-button" 
+                                     action="#{msgServices.viewMessage(msg)}" 
+                                     update="msg-dialog" 
+                                     oncomplete="PF('msg-dialog').show()"
+                                     style=" height: 18px; width: 36px;"
+                                     icon="ui-icon-search"
+                                     title="View Message"/>
+                </p:column>
+                <f:facet name="footer">
+                    <p:commandButton value="New message" 
+                                     action="#{msgServices.newMessage()}" 
+                                     update="msg-dialog" 
+                                     oncomplete="PF('msg-dialog').show()"
+                                     style=" height: 30px;"
+                                     />
+                </f:facet>
+            </p:dataTable>
+        </h:form>
+
+    </ui:define>
+</ui:composition>

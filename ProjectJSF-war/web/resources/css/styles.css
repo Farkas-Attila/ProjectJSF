@@ -1,0 +1,10 @@
+.ui-growl-item-container { background-color: tomato; } 
+.log-button { margin-top: 12px; margin-bottom: 5px; }
+
+.main-templ-body { font-size: 16px; }
+.logout-button { margin-top: 10px; margin-bottom: -10px; }
+.users-datatable { max-width: 800px; margin-left: auto; margin-right: auto; }
+.dep-datatable { max-width: 400px; margin-left: auto; margin-right: auto; }
+
+.new-msg { background-color: #D6EDB2; }
+.msg-datatable { }
